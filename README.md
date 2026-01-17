@@ -1,6 +1,25 @@
 # mini-duolingo
 A mini-duolingo by vibe-coding. 
 
+## Quickly Start
+```bash
+git clone https://github.com/sepinetam/mini-duolingo
+uv sync
+cp .env.example .env
+```
+
+使用你的 `API_KEY` 去替换 `.env` 文件中的 `API_KEY`
+```dotenv
+# 默认使用DeepSeek作为Model Provider
+OPENAI_API_KEY=<YOU_OPENAI_API_KEY>
+OPENAI_BASE_URL=https://api.deepseek.com/v1
+OPENAI_MODEL=deepseek-chat
+```
+
+启动你的项目
+```bash
+uv run main.py
+```
 
 ## 项目简介
 

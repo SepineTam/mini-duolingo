@@ -5,5 +5,4 @@
 - **样式**: Tailwind CSS
 - **数据库**：使用csv文件进行管理
 - **AI 辅助**: Claude Code (GLM-4.7)
-
-
+- **包管理工具**: uv
