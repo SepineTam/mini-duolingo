@@ -1,0 +1,21 @@
+[project]
+name = "mini-duolingo"
+version = "0.1.0"
+description = "A mini-duolingo by vibe-coding. "
+readme = "README.md"
+authors = [
+    { name = "SongTan", email = "sepinetam@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "flask>=3.1.2",
+    "openai>=2.15.0",
+    "python-dotenv>=1.2.1",
+]
+
+[project.scripts]
+mini-duolingo = "mini_duolingo:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
