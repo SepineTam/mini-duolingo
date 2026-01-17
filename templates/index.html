@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>练习 - Mini-Duolingo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen p-4">
+    <div class="max-w-2xl mx-auto">
+        <!-- 顶部进度栏 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                        </svg>
+                    </div>
+                    <span class="font-bold text-xl text-gray-800">Mini-Duolingo</span>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- 语言切换器 -->
+                    <div class="relative">
+                        <select id="languageSwitcher" onchange="switchLanguage(this.value)"
+                            class="appearance-none bg-green-50 border border-green-200 text-green-700 py-2 pl-4 pr-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer font-semibold">
+                            <!-- 语言选项将通过 JS 动态加载 -->
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-green-700">
+                            <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <a href="/languages" class="text-green-600 hover:text-green-700 text-sm font-semibold">
+                        管理语言
+                    </a>
+                </div>
+            </div>
+            <div class="text-sm text-gray-600 mb-4">
+                第 <span id="currentNum" class="font-bold text-green-600">1</span> 题 / 共 <span id="totalNum">15</span> 题
+            </div>
+
+            <!-- 进度条 -->
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                <div id="progressBar" class="bg-green-500 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+
+            <!-- 统计信息 -->
+            <div class="flex justify-between mt-4 text-sm">
+                <span class="text-green-600 font-semibold">✓ 正确: <span id="correctCount">0</span></span>
+                <span class="text-red-500 font-semibold">✗ 错误: <span id="wrongCount">0</span></span>
+                <span class="text-gray-600">连续正确: <span id="streakCount">0</span></span>
+            </div>
+        </div>
+
+        <!-- 题目卡片 -->
+        <div id="questionCard" class="bg-white rounded-xl shadow-lg p-8 mb-6">
+            <!-- 题目内容将在这里动态加载 -->
+            <div class="flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500"></div>
+            </div>
+        </div>
+
+        <!-- 反馈区域（初始隐藏） -->
+        <div id="feedbackArea" class="hidden">
+            <div id="feedbackCard" class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <div id="feedbackContent"></div>
+            </div>
+        </div>
+
+        <!-- 控制按钮 -->
+        <div class="flex justify-between">
+            <button id="prevBtn" onclick="previousQuestion()" class="hidden px-6 py-3 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition disabled:opacity-50">
+                上一题
+            </button>
+            <button id="nextBtn" onclick="nextQuestion()" class="hidden ml-auto px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition font-semibold">
+                下一题
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentQuestion = 0;
+        let questions = [];
+        let correctCount = 0;
+        let wrongCount = 0;
+        let streakCount = 0;
+        let wrongQuestions = []; // 记录错题
+        let practiceId = null;
+        let currentLanguage = null;
+
+        // 加载语言列表
+        async function loadLanguages() {
+            try {
+                const response = await fetch('/api/languages');
+                const result = await response.json();
+
+                if (result.success) {
+                    const select = document.getElementById('languageSwitcher');
+                    select.innerHTML = result.languages.map(lang =>
+                        `<option value="${lang.name}" ${lang.is_current ? 'selected' : ''}>${lang.name}</option>`
+                    ).join('');
+                    currentLanguage = result.current_language;
+                }
+            } catch (error) {
+                console.error('加载语言列表失败:', error);
+            }
+        }
+
+        // 切换语言
+        async function switchLanguage(language) {
+            if (language === currentLanguage) return;
+
+            if (!confirm(`切换到"${language}"将重新开始练习，确定吗？`)) {
+                // 恢复原来的选择
+                document.getElementById('languageSwitcher').value = currentLanguage;
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/languages/switch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ language })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    currentLanguage = result.current_language;
+                    // 重新加载题目
+                    currentQuestion = 0;
+                    correctCount = 0;
+                    wrongCount = 0;
+                    streakCount = 0;
+                    wrongQuestions = [];
+                    await loadQuestions();
+                    // 更新语言列表
+                    await loadLanguages();
+                } else {
+                    alert('切换失败: ' + result.error);
+                    document.getElementById('languageSwitcher').value = currentLanguage;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('网络错误');
+                document.getElementById('languageSwitcher').value = currentLanguage;
+            }
+        }
+
+        // 页面加载时获取题目
+        async function loadQuestions() {
+            try {
+                const response = await fetch('/api/generate_questions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    questions = data.questions;
+                    practiceId = data.practice_id;
+                    document.getElementById('totalNum').textContent = questions.length;
+                    displayQuestion();
+                } else {
+                    alert('题目生成失败，请重试');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('网络错误，请重试');
+            }
+        }
+
+        // 显示当前题目
+        function displayQuestion() {
+            const question = questions[currentQuestion];
+            const card = document.getElementById('questionCard');
+
+            // 更新进度
+            document.getElementById('currentNum').textContent = currentQuestion + 1;
+            const progress = ((currentQuestion) / questions.length) * 100;
+            document.getElementById('progressBar').style.width = progress + '%';
+
+            // 隐藏反馈和下一题按钮
+            document.getElementById('feedbackArea').classList.add('hidden');
+            document.getElementById('nextBtn').classList.add('hidden');
+
+            // 根据题型显示不同的界面
+            if (question.type === 'multiple_choice') {
+                displayMultipleChoice(question);
+            } else if (question.type === 'fill_blank') {
+                displayFillBlank(question);
+            }
+        }
+
+        // 显示单选题
+        function displayMultipleChoice(question) {
+            const card = document.getElementById('questionCard');
+            const options = question.options.map((opt, idx) => `
+                <button onclick="checkAnswer('${opt}')" class="w-full text-left p-4 mb-3 border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition">
+                    <span class="font-semibold text-gray-700 mr-3">${String.fromCharCode(65 + idx)}.</span>
+                    <span class="text-gray-800">${opt}</span>
+                </button>
+            `).join('');
+
+            card.innerHTML = `
+                <div class="mb-6">
+                    <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full mb-4">单选题</span>
+                    <h2 class="text-xl font-bold text-gray-800 mb-2">${question.question}</h2>
+                    ${question.hint ? `<p class="text-gray-500 text-sm">${question.hint}</p>` : ''}
+                </div>
+                <div class="space-y-2">
+                    ${options}
+                </div>
+            `;
+        }
+
+        // 显示填空题
+        function displayFillBlank(question) {
+            const card = document.getElementById('questionCard');
+
+            card.innerHTML = `
+                <div class="mb-6">
+                    <span class="inline-block px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full mb-4">填空题</span>
+                    <h2 class="text-xl font-bold text-gray-800 mb-2">${question.question}</h2>
+                    ${question.hint ? `<p class="text-gray-500 text-sm mb-4">${question.hint}</p>` : ''}
+                </div>
+                <div class="space-y-4">
+                    <input type="text" id="answerInput" placeholder="输入你的答案..."
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none text-lg"
+                        onkeypress="if(event.key === 'Enter') checkAnswer(document.getElementById('answerInput').value)">
+                    <button onclick="checkAnswer(document.getElementById('answerInput').value)"
+                        class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition">
+                        提交答案
+                    </button>
+                </div>
+            `;
+        }
+
+        // 检查答案
+        async function checkAnswer(userAnswer) {
+            const question = questions[currentQuestion];
+            const isCorrect = userAnswer.trim().toLowerCase() === question.answer.trim().toLowerCase();
+
+            // 记录用户答案
+            question.userAnswer = userAnswer;
+            question.isCorrect = isCorrect;
+
+            // 更新统计
+            if (isCorrect) {
+                correctCount++;
+                streakCount++;
+            } else {
+                wrongCount++;
+                streakCount = 0;
+                wrongQuestions.push(currentQuestion);
+            }
+
+            document.getElementById('correctCount').textContent = correctCount;
+            document.getElementById('wrongCount').textContent = wrongCount;
+            document.getElementById('streakCount').textContent = streakCount;
+
+            // 显示反馈
+            showFeedback(isCorrect, question);
+
+            // 禁用所有选项按钮
+            const buttons = document.querySelectorAll('#questionCard button');
+            buttons.forEach(btn => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            });
+
+            // 显示下一题按钮
+            document.getElementById('nextBtn').classList.remove('hidden');
+
+            // 发送答案到后端
+            submitAnswer(userAnswer, isCorrect);
+        }
+
+        // 显示反馈
+        function showFeedback(isCorrect, question) {
+            const feedbackArea = document.getElementById('feedbackArea');
+            const feedbackContent = document.getElementById('feedbackContent');
+            const feedbackCard = document.getElementById('feedbackCard');
+
+            feedbackCard.className = `bg-white rounded-xl shadow-lg p-6 mb-6 border-4 ${isCorrect ? 'border-green-500' : 'border-red-500'}`;
+
+            feedbackContent.innerHTML = `
+                <div class="flex items-center mb-4">
+                    ${isCorrect
+                        ? '<div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-4"><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg></div><h3 class="text-2xl font-bold text-green-600">回答正确！</h3>'
+                        : '<div class="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center mr-4"><svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></div><h3 class="text-2xl font-bold text-red-600">回答错误</h3>'
+                    }
+                </div>
+                ${!isCorrect ? `<p class="text-gray-700 mb-2"><span class="font-semibold">你的答案：</span>${question.userAnswer}</p>` : ''}
+                <p class="text-gray-700 mb-4"><span class="font-semibold">正确答案：</span><span class="text-green-600 font-bold">${question.answer}</span></p>
+                ${question.explanation ? `
+                    <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-blue-600 font-semibold mb-2">💡 快速解析：</p>
+                        <p class="text-gray-700">${question.explanation}</p>
+                    </div>
+                ` : ''}
+                <button onclick="getAIExplanation()" class="w-full mt-2 bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 flex items-center justify-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    查看AI详细解析
+                </button>
+                <div id="aiExplanation" class="hidden mt-4 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg p-5 border-2 border-purple-200"></div>
+            `;
+
+            feedbackArea.classList.remove('hidden');
+        }
+
+        // 获取AI详细解析
+        async function getAIExplanation() {
+            const question = questions[currentQuestion];
+            const aiExplanationDiv = document.getElementById('aiExplanation');
+
+            // 显示加载中
+            aiExplanationDiv.classList.remove('hidden');
+            aiExplanationDiv.innerHTML = `
+                <div class="flex items-center justify-center py-4">
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500 mr-3"></div>
+                    <span class="text-purple-600 font-semibold">AI正在生成详细解析...</span>
+                </div>
+            `;
+
+            try {
+                const response = await fetch('/api/get_explanation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: question.question,
+                        user_answer: question.userAnswer,
+                        correct_answer: question.answer,
+                        question_type: question.type,
+                        word: question.word
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // 显示AI解析
+                    aiExplanationDiv.innerHTML = `
+                        <div class="space-y-4">
+                            <h4 class="text-lg font-bold text-purple-700 mb-3">🤖 AI详细解析</h4>
+                            <div class="text-gray-700 whitespace-pre-wrap leading-relaxed">${data.explanation}</div>
+                        </div>
+                    `;
+                } else {
+                    aiExplanationDiv.innerHTML = `
+                        <div class="text-red-600">解析生成失败：${data.error || '未知错误'}</div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                aiExplanationDiv.innerHTML = `
+                    <div class="text-red-600">网络错误，请稍后重试</div>
+                `;
+            }
+        }
+
+        // 下一题
+        function nextQuestion() {
+            if (currentQuestion < questions.length - 1) {
+                currentQuestion++;
+                displayQuestion();
+            } else {
+                // 所有题目完成
+                finishPractice();
+            }
+        }
+
+        // 上一题
+        function previousQuestion() {
+            if (currentQuestion > 0) {
+                currentQuestion--;
+                displayQuestion();
+            }
+        }
+
+        // 完成练习
+        function finishPractice() {
+            if (wrongQuestions.length > 0) {
+                // 有错题，需要重做
+                if (confirm(`你答对了 ${correctCount} 题，答错了 ${wrongCount} 题。需要重做错题吗？`)) {
+                    // 创建错题集
+                    const retryQuestions = wrongQuestions.map(idx => questions[idx]);
+                    questions = retryQuestions;
+                    currentQuestion = 0;
+                    wrongQuestions = [];
+                    displayQuestion();
+                    return;
+                }
+            }
+
+            // 进入结束页面
+            window.location.href = `/result?practice_id=${practiceId}`;
+        }
+
+        // 提交答案到后端
+        async function submitAnswer(answer, isCorrect) {
+            const question = questions[currentQuestion];
+            try {
+                await fetch('/api/submit_answer', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        practice_id: practiceId,
+                        question_type: question.type,
+                        word: question.word,
+                        question: question.question,
+                        user_answer: answer,
+                        correct_answer: question.answer,
+                        is_correct: isCorrect
+                    })
+                });
+            } catch (error) {
+                console.error('Error submitting answer:', error);
+            }
+        }
+
+        // 页面加载时启动
+        // 页面加载时同时加载语言列表和题目
+        window.onload = async function() {
+            await Promise.all([
+                loadLanguages(),
+                loadQuestions()
+            ]);
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>语言管理 - Mini-Duolingo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="bg-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="flex items-center">
+                        <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                            </svg>
+                        </div>
+                        <span class="ml-3 text-xl font-bold text-gray-800">Mini-Duolingo</span>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="/languages" class="text-green-600 font-semibold">语言管理</a>
+                    <a href="/" class="text-gray-600 hover:text-gray-800">返回首页</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容 -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">语言管理</h1>
+            <p class="text-gray-600">管理你正在学习的语言，添加新语言或切换当前学习语言</p>
+        </div>
+
+        <!-- 添加语言卡片 -->
+        <div class="bg-white rounded-2xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">添加新语言</h2>
+            <form id="addLanguageForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择语言</label>
+                    <select name="language" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="">请选择...</option>
+                        <option value="英语">英语</option>
+                        <option value="日语">日语</option>
+                        <option value="法语">法语</option>
+                        <option value="德语">德语</option>
+                        <option value="西班牙语">西班牙语</option>
+                        <option value="韩语">韩语</option>
+                        <option value="意大利语">意大利语</option>
+                        <option value="葡萄牙语">葡萄牙语</option>
+                        <option value="俄语">俄语</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">词汇量等级</label>
+                    <select name="level" required
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="1">初学者 (500词以下)</option>
+                        <option value="3">初级 (500-1500词)</option>
+                        <option value="5" selected>中级 (1500-3000词)</option>
+                        <option value="7">中高级 (3000-5000词)</option>
+                        <option value="10">高级 (5000词以上)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">每日学习时长</label>
+                    <select name="daily_minutes"
+                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent">
+                        <option value="5">5分钟</option>
+                        <option value="10">10分钟</option>
+                        <option value="15" selected>15分钟</option>
+                        <option value="30">30分钟</option>
+                        <option value="45">45分钟</option>
+                        <option value="60">60分钟</option>
+                    </select>
+                </div>
+                <div class="flex items-end">
+                    <button type="submit"
+                        class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                        添加语言
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- 语言列表 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="languageList">
+            <!-- 语言卡片将通过 JS 动态加载 -->
+            <div class="col-span-full text-center py-12 text-gray-500">
+                加载中...
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示消息 -->
+    <div id="toast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300">
+        <span id="toastMessage"></span>
+    </div>
+
+    <script>
+        // 显示提示消息
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+
+            toast.className = `fixed top-4 right-4 ${isError ? 'bg-red-500' : 'bg-green-500'} text-white px-6 py-3 rounded-lg shadow-lg transform transition-transform duration-300`;
+            toastMessage.textContent = message;
+
+            toast.classList.remove('translate-x-full');
+            setTimeout(() => {
+                toast.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        // 加载语言列表
+        async function loadLanguages() {
+            try {
+                const response = await fetch('/api/languages');
+                const result = await response.json();
+
+                if (result.success) {
+                    renderLanguages(result.languages);
+                } else {
+                    showToast('加载失败: ' + result.error, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('网络错误', true);
+            }
+        }
+
+        // 渲染语言卡片
+        function renderLanguages(languages) {
+            const container = document.getElementById('languageList');
+
+            if (languages.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-500">
+                        还没有添加任何语言
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = languages.map(lang => `
+                <div class="bg-white rounded-2xl shadow-lg p-6 ${lang.is_current ? 'ring-4 ring-green-500' : ''}">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="text-2xl font-bold text-gray-800">${lang.name}</h3>
+                            ${lang.is_current ? '<span class="inline-block mt-2 px-3 py-1 bg-green-100 text-green-700 text-sm font-semibold rounded-full">当前学习</span>' : ''}
+                        </div>
+                        ${languages.length > 1 ? `
+                            <button onclick="removeLanguage('${lang.name}')" class="text-red-500 hover:text-red-700 p-2" title="移除语言">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        ` : ''}
+                    </div>
+
+                    <div class="space-y-3 mb-6">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">词汇量等级</span>
+                            <span class="font-semibold">${getLevelText(lang.level)}</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">每日学习时长</span>
+                            <span class="font-semibold">${lang.daily_minutes} 分钟</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">练习次数</span>
+                            <span class="font-semibold">${lang.practice_count} 次</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">已学单词</span>
+                            <span class="font-semibold">${lang.words_learned} 个</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">掌握单词</span>
+                            <span class="font-semibold text-green-600">${lang.mastered_words} 个</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-600">学习中</span>
+                            <span class="font-semibold text-blue-600">${lang.learning_words} 个</span>
+                        </div>
+                    </div>
+
+                    ${!lang.is_current ? `
+                        <button onclick="switchLanguage('${lang.name}')"
+                            class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-6 rounded-lg transition duration-200">
+                            切换到此语言
+                        </button>
+                    ` : `
+                        <div class="w-full bg-gray-100 text-gray-600 font-bold py-3 px-6 rounded-lg text-center">
+                            当前正在学习
+                        </div>
+                    `}
+                </div>
+            `).join('');
+        }
+
+        // 获取等级文本
+        function getLevelText(level) {
+            const levels = {
+                1: '初学者',
+                3: '初级',
+                5: '中级',
+                7: '中高级',
+                10: '高级'
+            };
+            return levels[level] || '中级';
+        }
+
+        // 添加语言
+        document.getElementById('addLanguageForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const data = Object.fromEntries(formData.entries());
+
+            try {
+                const response = await fetch('/api/languages/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('语言添加成功！');
+                    this.reset();
+                    loadLanguages();
+                } else {
+                    showToast('添加失败: ' + result.error, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('网络错误', true);
+            }
+        });
+
+        // 移除语言
+        async function removeLanguage(language) {
+            if (!confirm(`确定要移除"${language}"吗？相关的学习数据将被保留。`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/languages/remove', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ language })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`已移除"${language}"`);
+                    if (result.new_current) {
+                        showToast(`当前语言已切换为"${result.new_current}"`);
+                    }
+                    loadLanguages();
+                } else {
+                    showToast('移除失败: ' + result.error, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('网络错误', true);
+            }
+        }
+
+        // 切换语言
+        async function switchLanguage(language) {
+            try {
+                const response = await fetch('/api/languages/switch', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ language })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(`已切换到"${language}"`);
+                    loadLanguages();
+                } else {
+                    showToast('切换失败: ' + result.error, true);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('网络错误', true);
+            }
+        }
+
+        // 页面加载时获取语言列表
+        loadLanguages();
+    </script>
+</body>
+</html>

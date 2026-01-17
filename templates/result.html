@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>练习完成 - Mini-Duolingo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-br from-green-50 to-emerald-100 min-h-screen p-4">
+    <div class="max-w-2xl mx-auto">
+        <!-- 顶部Logo -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <div class="flex items-center space-x-2">
+                <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
+                </div>
+                <span class="font-bold text-xl text-gray-800">Mini-Duolingo</span>
+            </div>
+        </div>
+
+        <!-- 完成祝贺卡片 -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-6 text-center">
+            <div class="inline-flex items-center justify-center w-24 h-24 bg-green-500 rounded-full mb-6">
+                <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+            </div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">练习完成！</h1>
+            <p class="text-gray-600 mb-6">做得很好，继续保持！</p>
+
+            <!-- 统计数据 -->
+            <div class="grid grid-cols-3 gap-4 mb-6">
+                <div class="bg-green-50 rounded-lg p-4">
+                    <div class="text-3xl font-bold text-green-600" id="correctCount">-</div>
+                    <div class="text-sm text-gray-600 mt-1">答对题数</div>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-4">
+                    <div class="text-3xl font-bold text-blue-600" id="totalCount">-</div>
+                    <div class="text-sm text-gray-600 mt-1">总题数</div>
+                </div>
+                <div class="bg-purple-50 rounded-lg p-4">
+                    <div class="text-3xl font-bold text-purple-600" id="accuracy">-</div>
+                    <div class="text-sm text-gray-600 mt-1">正确率</div>
+                </div>
+            </div>
+
+            <!-- 连续正确奖励 -->
+            <div id="streakReward" class="hidden bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-center">
+                    <svg class="w-8 h-8 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
+                    </svg>
+                    <span class="text-yellow-700 font-semibold" id="streakText"></span>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="space-y-3">
+                <button onclick="startNewPractice()" class="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-4 px-6 rounded-lg transition duration-200 transform hover:scale-105 shadow-lg">
+                    开始新的练习
+                </button>
+                <button onclick="viewWrongQuestions()" id="viewWrongBtn" class="hidden w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg transition">
+                    查看错题
+                </button>
+                <button onclick="viewHistory()" class="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition">
+                    查看学习历史
+                </button>
+            </div>
+        </div>
+
+        <!-- 本次学习的单词 -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">本次学习的单词</h2>
+            <div id="wordsList" class="flex flex-wrap gap-2">
+                <!-- 单词列表将在这里动态加载 -->
+            </div>
+        </div>
+
+        <!-- 错题回顾（默认隐藏） -->
+        <div id="wrongQuestionsSection" class="hidden bg-white rounded-xl shadow-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">错题回顾</h2>
+            <div id="wrongQuestionsList" class="space-y-4">
+                <!-- 错题列表将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let practiceData = null;
+
+        // 页面加载时获取练习结果
+        async function loadResult() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const practiceId = urlParams.get('practice_id');
+
+            if (!practiceId) {
+                alert('缺少练习ID');
+                window.location.href = '/';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/practice_result?practice_id=${practiceId}`);
+                if (response.ok) {
+                    practiceData = await response.json();
+                    displayResult(practiceData);
+                } else {
+                    alert('获取练习结果失败');
+                    window.location.href = '/';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('网络错误');
+                window.location.href = '/';
+            }
+        }
+
+        // 显示结果
+        function displayResult(data) {
+            // 统计数据
+            document.getElementById('correctCount').textContent = data.correct_count;
+            document.getElementById('totalCount').textContent = data.total_count;
+            document.getElementById('accuracy').textContent = data.accuracy + '%';
+
+            // 连续正确奖励
+            if (data.max_streak >= 5) {
+                document.getElementById('streakReward').classList.remove('hidden');
+                document.getElementById('streakText').textContent = `连续答对 ${data.max_streak} 题！太棒了！`;
+            }
+
+            // 显示单词列表
+            const wordsList = document.getElementById('wordsList');
+            if (data.words_learned && data.words_learned.length > 0) {
+                wordsList.innerHTML = data.words_learned.map(word => `
+                    <span class="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-semibold">
+                        ${word}
+                    </span>
+                `).join('');
+            } else {
+                wordsList.innerHTML = '<p class="text-gray-500">暂无单词记录</p>';
+            }
+
+            // 如果有错题，显示查看错题按钮
+            if (data.wrong_questions && data.wrong_questions.length > 0) {
+                document.getElementById('viewWrongBtn').classList.remove('hidden');
+            }
+        }
+
+        // 查看错题
+        function viewWrongQuestions() {
+            const section = document.getElementById('wrongQuestionsSection');
+            const list = document.getElementById('wrongQuestionsList');
+
+            if (practiceData.wrong_questions && practiceData.wrong_questions.length > 0) {
+                section.classList.remove('hidden');
+                list.innerHTML = practiceData.wrong_questions.map((q, idx) => `
+                    <div class="border-2 border-red-200 rounded-lg p-4 bg-red-50">
+                        <div class="flex items-start justify-between mb-2">
+                            <h3 class="font-bold text-gray-800">第 ${q.question_index + 1} 题</h3>
+                            <span class="text-xs px-2 py-1 bg-red-200 text-red-700 rounded">${q.type === 'multiple_choice' ? '单选' : '填空'}</span>
+                        </div>
+                        <p class="text-gray-700 mb-2">${q.question}</p>
+                        <p class="text-sm text-gray-600 mb-1"><span class="font-semibold">你的答案：</span>${q.user_answer}</p>
+                        <p class="text-sm text-green-600 font-semibold">正确答案：${q.correct_answer}</p>
+                        ${q.explanation ? `<p class="text-sm text-gray-600 mt-2 bg-white p-2 rounded">${q.explanation}</p>` : ''}
+                    </div>
+                `).join('');
+
+                // 滚动到错题区域
+                section.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // 开始新的练习
+        function startNewPractice() {
+            window.location.href = '/';
+        }
+
+        // 查看学习历史
+        function viewHistory() {
+            // TODO: 实现学习历史页面
+            alert('学习历史功能开发中...');
+        }
+
+        // 页面加载时启动
+        window.onload = loadResult;
+    </script>
+</body>
+</html>
